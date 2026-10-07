@@ -38,6 +38,11 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
         lang = db_user.language
         texts = TEXTS.get(lang, TEXTS["uz"])
+
+    # Banned users are blocked from using the bot entirely
+    if db_user.is_banned:
+        await update.message.reply_text(texts["banned"])
+        return
         
     # Main menu button intercepts
     if text in [TEXTS["uz"]["btn_account"], TEXTS["ru"]["btn_account"], TEXTS["en"]["btn_account"]]:

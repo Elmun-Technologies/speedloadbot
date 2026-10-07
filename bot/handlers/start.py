@@ -48,6 +48,14 @@ async def start_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             from bot.handlers.onboarding import start_onboarding
             return await start_onboarding(update, context)
 
+        # Banned users are blocked from using the bot entirely
+        # (previously they were only excluded from broadcasts/jobs)
+        if db_user.is_banned:
+            lang = db_user.language
+            texts = TEXTS.get(lang, TEXTS["uz"])
+            await update.message.reply_text(texts["banned"])
+            return
+
         # For existing users, check if onboarding is completed
         if not db_user.onboarding_completed:
             from bot.handlers.onboarding import start_onboarding

@@ -18,6 +18,7 @@ TEXTS = {
             "✨ Sehrli qo'llarim ishlamoqda..."
         ],
         "unsupported": "❌ Kechirasiz, bu linkni tushuna olmadim. \nIltimos, YouTube, Instagram, TikTok yoki boshqa mashhur platformalar linkini yuboring.",
+        "banned": "🚫 Hisobingiz administrator tomonidan bloklangan. Batafsil ma'lumot uchun qo'llab-quvvatlash bilan bog'laning.",
         "too_large": "⚠️ Video hajmi {size}MB. Telegram 50MB dan katta fayllarni qabul qilmaydi.\nLekin xavotir olmang, 'For Creators' bo'limida videoni SIQISH (compress) yordamida hajmini kichraytirishingiz mumkin! 😉",
         "private": "🔒 Bu video yopiq yoki o'chirib yuborilgan ekan. Boshqasini ko'rib chiqamizmi? 🧐",
         "generic_error": "😔 Nimadir noto'g'ri ketdi... Iltimos, yana bir bor urinib ko'ring yoki birozdan keyin qayting. Men doim tayyorman! 😊",
@@ -110,6 +111,7 @@ TEXTS = {
             "✨ Волшебные руки работают..."
         ],
         "unsupported": "❌ Извините, я не понял эту ссылку. \nПожалуйста, отправьте ссылку с YouTube, Instagram, TikTok или других популярных платформ.",
+        "banned": "🚫 Ваш аккаунт заблокирован администратором. За подробной информацией обратитесь в поддержку.",
         "too_large": "⚠️ Размер видео {size}MB. Telegram не принимает файлы больше 50MB.\nНо не волнуйтесь, в разделе 'For Creators' вы можете СЖАТЬ (compress) видео! 😉",
         "private": "🔒 Кажется, это видео приватное или удалено. Посмотрим другое?",
         "generic_error": "😔 Что-то пошло не так... Пожалуйста, попробуйте еще раз или вернитесь чуть позже.",
@@ -202,6 +204,7 @@ TEXTS = {
             "✨ Magic hands at work..."
         ],
         "unsupported": "❌ Sorry, I didn't get that link. \nPlease send a link from YouTube, Instagram, TikTok, or other popular platforms.",
+        "banned": "🚫 Your account has been blocked by an administrator. Please contact support for details.",
         "too_large": "⚠️ Video size is {size}MB. Telegram doesn't accept files over 50MB.\nBut don't worry, you can COMPRESS it in the 'For Creators' section! 😉",
         "private": "🔒 Looks like this video is private or deleted. How about another one?",
         "generic_error": "😔 Something went wrong... Please try again or come back later.",

@@ -59,3 +59,14 @@ def test_transcriber_imports_if_whisper_available():
     # whisper (torch) is a heavy optional dependency — only test when installed
     pytest.importorskip("whisper")
     importlib.import_module("utils.transcriber")
+
+
+def test_transcriber_degrades_gracefully_without_whisper(monkeypatch):
+    """If whisper/torch is not installed, transcribe_video must return a
+    friendly error string instead of raising ImportError."""
+    import utils.transcriber as transcriber
+
+    monkeypatch.setattr(transcriber, "whisper", None)
+    result = transcriber.transcribe_video("some-file.mp4")
+    assert isinstance(result, str)
+    assert "❌" in result

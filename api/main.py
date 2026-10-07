@@ -4,6 +4,8 @@ from datetime import datetime, timedelta
 
 import jwt
 from fastapi import FastAPI, Depends, HTTPException, Request
+from fastapi.responses import FileResponse
+from pathlib import Path
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, desc, or_
@@ -45,6 +47,25 @@ app.add_middleware(
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
+
+# --- ADMIN DASHBOARD (static, no build step) ---
+
+DASHBOARD_DIR = Path(__file__).resolve().parent.parent / "dashboard"
+
+
+@app.get("/")
+async def dashboard_home():
+    """Serve the built-in admin dashboard (dashboard/index.html)."""
+    index = DASHBOARD_DIR / "index.html"
+    if not index.exists():
+        raise HTTPException(status_code=404, detail="Dashboard not found")
+    return FileResponse(index)
+
+
+@app.get("/dashboard")
+async def dashboard_page():
+    return await dashboard_home()
 
 
 # --- AUTH ---

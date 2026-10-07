@@ -45,7 +45,8 @@ A comprehensive Telegram bot for downloading videos from various platforms with 
 - **Celery** - Task queue and background jobs
 
 ### Frontend (Admin Dashboard)
-- **Next.js + TypeScript + Tailwind CSS + ShadCN UI** — 🚧 in development (`dashboard/` is a placeholder for now; the FastAPI admin API in `api/` is ready to consume)
+- **Built-in lightweight dashboard** — a self-contained admin panel (`dashboard/index.html`, no build step) served by the FastAPI app at `/` and `/dashboard`. Login with the admin credentials, view stats, manage users (block/unblock, credits), answer tickets, browse trends and payments.
+- **Full Next.js + TypeScript + Tailwind CSS + ShadCN UI dashboard** — 🚧 planned (`api/` admin API is ready to consume)
 
 ### Bot Framework
 - **Python-Telegram-Bot** - Telegram bot framework
@@ -101,10 +102,9 @@ A comprehensive Telegram bot for downloading videos from various platforms with 
    python api/main.py
    ```
 
-7. **Start the admin dashboard (🚧 in development):**
-   ```bash
-   ./admin-dev.sh
-   ```
+7. **Open the admin dashboard** (served by the API, no build step):
+   - Start the API (`python api/main.py`) and open `http://localhost:8000/` — or `/dashboard`
+   - Log in with `ADMIN_USERNAME` / `ADMIN_PASSWORD` from your `.env`
 
 ## Configuration
 
@@ -192,7 +192,7 @@ speedloader/
 │   ├── handlers/         # Command handlers
 │   ├── keyboards/        # Inline keyboards
 │   └── middlewares/      # Bot middlewares
-├── dashboard/            # Admin dashboard (Next.js)
+├── dashboard/            # Admin dashboard (static index.html, served by the API)
 ├── downloader/           # Download functionality
 │   ├── youtube.py        # YouTube downloader
 │   ├── instagram.py      # Instagram downloader
@@ -212,7 +212,7 @@ speedloader/
 1. **Create database models** in `database/models.py`
 2. **Add API endpoints** in `api/routes.py`
 3. **Implement bot handlers** in `bot/handlers/`
-4. **Update admin dashboard** in `dashboard/src/`
+4. **Update admin dashboard** in `dashboard/index.html` (plain HTML/JS, no build step)
 5. **Add translations** in `utils/translations.py`
 
 ### Testing

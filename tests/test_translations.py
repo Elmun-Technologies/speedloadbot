@@ -18,7 +18,7 @@ REQUIRED_KEYS = [
     "status_uploading", "status_done", "status_error", "status_main_menu",
     "status_send_file", "status_too_long", "quality_audio", "quality_thumbnail",
     # used by handlers, previously missing entirely:
-    "language_updated", "what_to_download",
+    "language_updated", "what_to_download", "banned",
 ]
 
 LANGS = ("uz", "ru", "en")

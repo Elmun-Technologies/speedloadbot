@@ -28,6 +28,9 @@ from database.models import Download, DownloadStatus
 
 USER_ID = 555001
 RETURNING_USER_ID = 555002
+BANNED_USER_ID = 555003
+COMPLETED_USER_ID = 555004
+PLAIN_USER_ID = 555005
 BOT_ID = 999999
 LINK = "https://www.youtube.com/watch?v=abc123"
 
@@ -293,6 +296,97 @@ def test_returning_user_gets_main_menu(monkeypatch):
         assert any("📥 Yuklab olish" in bot.reply_buttons(m) for m in sent)
         # ...and onboarding was NOT restarted (no language keyboard)
         assert not any("lang_uz" in bot.inline_buttons(m) for m in sent)
+
+        await app.shutdown()
+
+    asyncio.run(scenario())
+
+
+async def _make_onboarded_user(user_id, username, banned=False):
+    async with AsyncSessionLocal() as s:
+        await crud.create_user(s, user_id, username, "Test", "uz")
+        user = await crud.get_user(s, user_id)
+        await crud.update_user_profile(s, user.id, onboarding_completed=True)
+        if banned:
+            user.is_banned = True
+            await s.commit()
+
+
+def test_banned_user_is_blocked_in_bot(monkeypatch):
+    """Banned users get a 'blocked' notice and cannot use the bot at all —
+    neither /start nor link processing (previously they were only excluded
+    from broadcasts/jobs)."""
+    bot = make_bot()
+    fake_task = patch_boundaries(monkeypatch, bot)
+    app = build_application(bot=bot)
+
+    async def scenario():
+        await init_db()
+        await _make_onboarded_user(BANNED_USER_ID, "banned", banned=True)
+        await app.initialize()
+
+        # /start -> banned notice, no menu keyboards
+        await app.process_update(message_update(
+            "/start", 1, bot, user_id=BANNED_USER_ID,
+            entities=[{"type": "bot_command", "offset": 0, "length": 6}],
+        ))
+        sent = bot.sent_messages()
+        assert any("🚫" in (m.get("text") or "") for m in sent)
+        assert not any("📥 Yuklab olish" in bot.reply_buttons(m) for m in sent)
+        assert not any("lang_uz" in bot.inline_buttons(m) for m in sent)
+
+        # a YouTube link -> banned notice again, no extraction, no download
+        await app.process_update(message_update(LINK, 2, bot, user_id=BANNED_USER_ID))
+        sent = bot.sent_messages()
+        assert any("🚫" in (m.get("text") or "") for m in sent)
+        assert not bot.edited_texts()          # no info card was sent
+        assert fake_task.delay_calls == []     # nothing was queued
+
+        await app.shutdown()
+
+    asyncio.run(scenario())
+
+
+def test_unsupported_link_gets_error_reply(monkeypatch):
+    """A link from an unsupported platform gets the 'unsupported' notice
+    and never reaches yt-dlp."""
+    bot = make_bot()
+    fake_task = patch_boundaries(monkeypatch, bot)
+    app = build_application(bot=bot)
+
+    async def scenario():
+        await init_db()
+        await _make_onboarded_user(COMPLETED_USER_ID, "comp")
+        await app.initialize()
+
+        await app.process_update(
+            message_update("https://example.com/video", 1, bot, user_id=COMPLETED_USER_ID)
+        )
+        sent = bot.sent_messages()
+        assert any("❌" in (m.get("text") or "") for m in sent)
+        assert not bot.edited_texts()
+        assert fake_task.delay_calls == []
+
+        await app.shutdown()
+
+    asyncio.run(scenario())
+
+
+def test_plain_text_gets_no_reply(monkeypatch):
+    """A plain (non-link) message is ignored silently by the download handler."""
+    bot = make_bot()
+    patch_boundaries(monkeypatch, bot)
+    app = build_application(bot=bot)
+
+    async def scenario():
+        await init_db()
+        await _make_onboarded_user(PLAIN_USER_ID, "plain")
+        await app.initialize()
+
+        await app.process_update(
+            message_update("salom, qalaysan?", 1, bot, user_id=PLAIN_USER_ID)
+        )
+        assert bot.sent_messages() == []
 
         await app.shutdown()
 

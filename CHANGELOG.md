@@ -39,15 +39,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - End-to-end bot flow tests (`tests/test_e2e_bot.py`): full chain /start → language → interests → occupation → YouTube link → quality selection → database record + Celery dispatch, with only the outer boundaries faked (Telegram HTTP via a fake bot, yt-dlp extraction, Celery `.delay`)
 - `tests/conftest.py` — points `DATABASE_URL` at a temp SQLite database before any project import, so integration tests share one isolated DB
 - Rate-limiter tests for callback queries (unlimited) and Redis outage (fails open)
+- Built-in admin dashboard (`dashboard/index.html`): a self-contained panel (no build step) served by the API at `/` and `/dashboard` — login, stats, user management (block/unblock, credits), ticket replies, trends and payments
+- GitHub Actions CI workflow (`.github/workflows/tests.yml`) running the full test suite on every push/PR
+- End-to-end edge-case tests: banned user is blocked, unsupported link gets an error reply, plain text is ignored silently
+- Graceful-degradation test for the optional whisper transcriber
 
 ### Changed
-- N/A
+- `requirements.txt` is now fully pinned to the tested environment (reproducible installs); `requirements-dev.txt` pinned as well
 
 ### Deprecated
 - N/A
 
 ### Removed
-- N/A
+- Dead dependencies removed from `requirements.txt`: `Pillow`, `mutagen`, `hachoir`, `hijri-converter`, `psycopg2-binary` (not imported anywhere in the codebase; shrinks the Docker image)
 
 ### Fixed
 - Fixed syntax error in `bot/handlers/account.py` (stray markdown fence) that prevented the bot from starting
@@ -71,6 +75,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Made `BigInteger` primary keys SQLite-compatible (`with_variant`) so the models work across databases
 - **Critical: fixed `NameError` in `bot/main.py` — the handler was referenced as `handle_personalized_trend` but the function is named `handle_trend_personalized`; the bot crashed at startup (found by the new end-to-end test)**
 - Rate limiting now applies to messages only — callback-query button taps stay unlimited, so multi-step flows like onboarding (4 taps) are no longer blocked by the 3/min limit
+- Banned users are now blocked in the bot itself (`/start` and link messages get a "blocked" notice) — previously they were only excluded from broadcasts/jobs and could keep using the bot
+- `utils/transcriber.py` no longer crashes at import when whisper/torch is not installed — it degrades to a friendly error message
+- Added the missing `banned` translation key (uz/ru/en)
+- Replaced the broken `dashboard` git submodule entry (no `.gitmodules` mapping — clones got an empty directory) with the real tracked `dashboard/index.html`
 
 ### Security
 - Removed hardcoded default secrets (`ADMIN_PASSWORD`, `JWT_SECRET`) from `config.py` — the admin API refuses to issue tokens until they are set via environment variables

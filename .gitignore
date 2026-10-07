@@ -157,3 +157,6 @@ config/secrets.json
 
 # pytest
 .pytest_cache/
+
+# CI generates this on the fly (requirements without the heavy whisper dep)
+requirements-ci.txt

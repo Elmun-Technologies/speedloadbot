@@ -195,3 +195,22 @@ def test_payments_list(client):
     payments = r.json()["payments"]
     assert len(payments) == 1
     assert payments[0]["amount"] == 100
+
+
+def test_dashboard_is_served_at_root(client):
+    """The built-in admin dashboard (static HTML) is served at / and /dashboard."""
+    for path in ("/", "/dashboard"):
+        r = client.get(path)
+        assert r.status_code == 200
+        assert "text/html" in r.headers["content-type"]
+        body = r.text
+        assert "SpeedLoad" in body
+        assert "/admin/login" in body  # the page actually talks to the API
+
+
+def test_dashboard_does_not_bypass_admin_auth(client):
+    """Serving the HTML page must not expose any admin data without a token."""
+    r = client.get("/admin/stats")
+    assert r.status_code == 401
+    r = client.get("/admin/users")
+    assert r.status_code == 401
