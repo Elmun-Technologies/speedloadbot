@@ -1,5 +1,7 @@
 # SpeedLoader Bot
 
+[![Tests](https://github.com/Elmun-Technologies/speedloadbot/actions/workflows/tests.yml/badge.svg)](https://github.com/Elmun-Technologies/speedloadbot/actions/workflows/tests.yml)
+
 A comprehensive Telegram bot for downloading videos from various platforms with advanced features including AI content analysis, trend detection, and user management.
 
 ## Features
@@ -113,38 +115,41 @@ A comprehensive Telegram bot for downloading videos from various platforms with 
 Key configuration options in `.env`:
 
 ```bash
-# Bot Configuration
+# Telegram Bot
 BOT_TOKEN=your_telegram_bot_token
-ADMIN_IDS=123456789,987654321
 
-# Database
-DATABASE_URL=postgresql://user:password@localhost:5432/speedloader
+# Admin bot commands (comma-separated Telegram user IDs; empty = disabled)
+ADMIN_IDS=
+
+# Database & Redis
+DATABASE_URL=postgresql://user:password@localhost:5432/speedload
 REDIS_URL=redis://localhost:6379/0
+CELERY_BROKER_URL=redis://localhost:6379/0
+CELERY_RESULT_BACKEND=redis://localhost:6379/1
 
-# API Configuration
+# AI Services (optional — Trend Radar AI research & Whisper transcription)
+OPENAI_API_KEY=
+
+# Admin API / Dashboard (⚠️ set strong values in production)
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=change_me
+JWT_SECRET=change_me_to_a_long_random_string
+ADMIN_CORS_ORIGINS=http://localhost:3000,http://localhost:3001
+
+# API Server
 API_HOST=0.0.0.0
 API_PORT=8000
-
-# Storage
-STORAGE_PATH=./downloads
-MAX_FILE_SIZE=500MB
-
-# AI Services
-OPENAI_API_KEY=your_openai_key
-ANTHROPIC_API_KEY=your_claude_key
 ```
+
+See `.env.example` for the full annotated list.
 
 ### Database Setup
 
-1. **Initialize database:**
-   ```bash
-   python -c "from database.connection import init_db; init_db()"
-   ```
+Tables are created automatically on the first bot start (`init_db()` runs in `bot/main.py`). To create them manually (e.g. before starting only the API):
 
-2. **Run migrations:**
-   ```bash
-   python migrate_trends.py
-   ```
+```bash
+python -c "import asyncio; from database.connection import init_db; asyncio.run(init_db())"
+```
 
 ## Usage
 
@@ -178,6 +183,32 @@ docker-compose up admin
 - `/tickets` - Handle support tickets
 
 Admin replies to tickets (bot `/tickets` or the dashboard/API `POST /admin/tickets/{id}/reply`) are delivered to the user on Telegram via a queued Celery task.
+
+## Testing
+
+The project has a comprehensive test suite (unit, integration and end-to-end):
+
+```bash
+# install dev dependencies (includes the pinned production requirements)
+pip install -r requirements-dev.txt
+
+# run the full suite
+python -m pytest tests/ -q
+```
+
+What is covered:
+
+| Area | How |
+|---|---|
+| Bot flows (E2E) | Real application + real SQLite DB; only Telegram HTTP, yt-dlp and Celery are faked (`tests/test_e2e_bot.py`) |
+| Celery worker tasks | `process_download` (success / mp3 / too-large / failure) and `notify_ticket_reply`, executed in-process with a fake bot (`tests/test_tasks.py`) |
+| Database CRUD | Real SQLite via aiosqlite (`tests/test_database.py`) |
+| Admin API | FastAPI TestClient + SQLite dependency override (`tests/test_api.py`) |
+| Rate limiter | fakeredis, incl. callback queries and Redis outage (`tests/test_rate_limit.py`) |
+| Scheduled jobs | Active/non-banned user selection against a real DB (`tests/test_jobs.py`) |
+| Pure helpers | Platform detection, content filter, greetings, smart-cut (`tests/test_detector.py`, `tests/test_human_touch.py`, `tests/test_aicut.py`) |
+
+The suite also runs automatically on every push/PR via GitHub Actions (`.github/workflows/tests.yml`).
 
 ## Development
 

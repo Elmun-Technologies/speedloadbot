@@ -46,16 +46,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Admin ticket replies now reach the user on Telegram: `POST /admin/tickets/{id}/reply` enqueues a `notify_ticket_reply` Celery task (executed by the worker, retried on failure, HTML-escaped); added the `ticket_reply_admin` translation key (uz/ru/en)
 - `GET /admin/tickets` is now paginated (`page`/`limit` params) and returns the `total` count
 - Tests for the worker tasks (`tests/test_tasks.py`: notification content, HTML escaping, user language) and for the whisper transcription formatting (fake model — no torch needed)
+- Test coverage for the previously untested components: the Celery worker's `process_download` task end-to-end — success / mp3 / too-large / failure paths with a real SQLite DB and a fake bot (`tests/test_tasks.py`); scheduled jobs (`tests/test_jobs.py`); platform detection (`tests/test_detector.py`); human-touch helpers (`tests/test_human_touch.py`); the smart-cut shorts tool with mocked ffmpeg (`tests/test_aicut.py`)
+- `ADMIN_IDS` is now read from the environment (comma-separated Telegram user IDs) instead of a hardcoded list in `bot/handlers/trends.py`; admin-only bot commands stay disabled until it is configured
+- README: CI badge + a Testing section (how to run the suite, what is covered)
 
 ### Changed
 - `requirements.txt` is now fully pinned to the tested environment (reproducible installs); `requirements-dev.txt` pinned as well
 - `GET /health` now performs a real database probe (`{"status": ..., "database": ...}`) instead of returning a hardcoded constant
+- README environment-variables block now matches `.env.example` (added `CELERY_*`, `JWT_SECRET`, `ADMIN_*`; removed unused `STORAGE_PATH` / `MAX_FILE_SIZE` / `ANTHROPIC_API_KEY`)
+- CONTRIBUTING.md Testing section rewritten to describe the real test suite (it previously documented a non-existent `tests/unit|integration|fixtures` layout)
 
 ### Deprecated
 - N/A
 
 ### Removed
 - Dead dependencies removed from `requirements.txt`: `Pillow`, `mutagen`, `hachoir`, `hijri-converter`, `psycopg2-binary` (not imported anywhere in the codebase; shrinks the Docker image)
+- `migrate_trends.py` — raw-SQL migration fully redundant with `init_db()` (`Base.metadata.create_all` covers both `trends` and `trend_views`)
 
 ### Fixed
 - Fixed syntax error in `bot/handlers/account.py` (stray markdown fence) that prevented the bot from starting
@@ -83,6 +89,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `utils/transcriber.py` no longer crashes at import when whisper/torch is not installed — it degrades to a friendly error message
 - Added the missing `banned` translation key (uz/ru/en)
 - Replaced the broken `dashboard` git submodule entry (no `.gitmodules` mapping — clones got an empty directory) with the real tracked `dashboard/index.html`
+- `tasks/download_task.py`: `process_download` no longer leaks the Telegram bot session and the DB engine — both are closed in a `finally`, including the early-return too-large path
+- `utils/aicut.py`: docstring no longer claims "AI" — it is a deterministic FFmpeg-based cutter (fixed-position highlights)
+- README setup: the `init_db()` one-liner now actually awaits the coroutine (`asyncio.run(...)`); removed the redundant migration step
 
 ### Security
 - Removed hardcoded default secrets (`ADMIN_PASSWORD`, `JWT_SECRET`) from `config.py` — the admin API refuses to issue tokens until they are set via environment variables

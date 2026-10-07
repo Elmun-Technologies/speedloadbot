@@ -15,7 +15,7 @@ from utils.trends import (
 )
 from utils.integration import process_user_action
 
-ADMIN_IDS = [6241083439] # Update as needed
+from config import ADMIN_IDS  # admin-only commands; empty until ADMIN_IDS is set
 
 async def trend_radar_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Main handler when user taps Trend Radar button"""

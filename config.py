@@ -24,6 +24,11 @@ os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 # admin API refuses to issue tokens while JWT_SECRET / ADMIN_PASSWORD are unset.
 ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "")
+# Telegram user IDs allowed to use admin-only bot commands (comma-separated).
+# Empty by default — admin bot commands stay disabled until configured.
+ADMIN_IDS = [
+    int(x) for x in os.getenv("ADMIN_IDS", "").split(",") if x.strip().isdigit()
+]
 JWT_SECRET = os.getenv("JWT_SECRET", "")
 
 # Comma-separated list of origins allowed to call the admin API from a browser

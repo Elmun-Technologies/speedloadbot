@@ -155,74 +155,68 @@ Closes #123
 
 ## Testing
 
+The project has a comprehensive test suite (100+ tests: unit, integration and
+end-to-end). Tests run against a real SQLite database — PostgreSQL, Redis,
+Telegram, yt-dlp and Celery are faked at the outer boundaries only.
+
 ### Test Structure
 
-Tests are organized as follows:
 ```
 tests/
-├── unit/           # Unit tests
-├── integration/    # Integration tests
-└── fixtures/       # Test data
+├── conftest.py            # session-wide temp SQLite DATABASE_URL (set before imports)
+├── test_smoke.py          # all modules import; optional deps degrade gracefully
+├── test_translations.py   # translation key parity across uz/ru/en
+├── test_utils.py          # config & misc utilities
+├── test_config.py         # configuration handling
+├── test_database.py       # CRUD layer (real SQLite)
+├── test_api.py            # admin API (TestClient + SQLite dependency override)
+├── test_rate_limit.py     # rate limiter (fakeredis)
+├── test_conversations.py  # conversation/handler wiring
+├── test_e2e_bot.py        # full bot flows E2E (onboarding, download, bans, edge cases)
+├── test_tasks.py          # Celery worker tasks (process_download, notify_ticket_reply)
+├── test_jobs.py           # scheduled jobs (active/non-banned user selection)
+├── test_detector.py       # platform detection
+├── test_human_touch.py    # content filter, greetings, video-type detection
+└── test_aicut.py          # smart-cut shorts tool (ffmpeg mocked)
 ```
 
 ### Writing Tests
 
-1. **Unit tests**: Test individual functions and classes
-2. **Integration tests**: Test API endpoints and database operations
-3. **Use fixtures**: Create reusable test data
+1. **Prefer real components**: use the real SQLite DB (aiosqlite) and fake only
+   the outer boundaries (Telegram HTTP, yt-dlp, Celery, ffmpeg).
+2. **One concern per test**: name tests after the behavior they verify.
+3. **No network**: tests must run fully offline (CI has no Telegram/Redis/PG).
 
-**Example test:**
+**Example test (API endpoint with a test database):**
 ```python
-import pytest
-from fastapi.testclient import TestClient
-from api.main import app
-from database import get_db, Base
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-
-
-@pytest.fixture
-def test_db():
-    """Create a test database session."""
-    engine = create_engine("sqlite:///:memory:")
-    TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-    Base.metadata.create_all(bind=engine)
-    yield TestingSessionLocal()
-    Base.metadata.drop_all(bind=engine)
-
-
-def test_create_user(client: TestClient, test_db):
-    """Test user creation endpoint."""
-    user_data = {
-        "username": "testuser",
-        "email": "test@example.com",
-        "password": "testpass123"
-    }
-    
-    response = client.post("/users/", json=user_data)
-    
-    assert response.status_code == 201
-    assert response.json()["username"] == "testuser"
+def test_stats_returns_real_data(client):
+    token = login(client)
+    r = client.get("/admin/stats", headers=auth(token))
+    assert r.status_code == 200
+    assert r.json()["totalUsers"] == 2  # seeded by the `client` fixture
 ```
 
 ### Running Tests
 
 ```bash
-# Run all tests
-pytest
+# install dev dependencies (includes the pinned production requirements)
+pip install -r requirements-dev.txt
 
-# Run with coverage
-pytest --cov=.
+# run the full suite
+python -m pytest tests/ -q
 
-# Run specific test file
-pytest tests/unit/test_user.py
+# run a specific test file
+python -m pytest tests/test_api.py -q
 
-# Run tests with verbose output
-pytest -v
+# run tests matching a pattern
+python -m pytest tests/ -k "download" -q
 
-# Run tests matching a pattern
-pytest -k "test_user"
+# verbose output
+python -m pytest tests/ -v
 ```
+
+The suite also runs automatically on every push/PR via GitHub Actions
+(`.github/workflows/tests.yml`).
 
 ## Submitting Changes
 

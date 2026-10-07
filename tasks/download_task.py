@@ -54,12 +54,12 @@ def process_download(self, telegram_id, chat_id, message_id, url, quality, downl
         from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
         from config import DATABASE_URL
         from sqlalchemy.pool import NullPool
-        
+
         local_engine = create_async_engine(DATABASE_URL, poolclass=NullPool)
         LocalSession = async_sessionmaker(local_engine, class_=AsyncSession, expire_on_commit=False)
         bot = Bot(token=BOT_TOKEN)
         texts = TEXTS.get(language, TEXTS["uz"])
-        
+
         async def edit_final_error(msg):
             try:
                 if has_caption:
@@ -68,41 +68,45 @@ def process_download(self, telegram_id, chat_id, message_id, url, quality, downl
                     await bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=msg)
             except: pass
 
-        if result.get("success"):
-            filepath = result["filepath"]
-            size_bytes = result["size"]
-            size_mb = size_bytes / (1024*1024) if size_bytes else 0
-            
-            if size_bytes > 50 * 1024 * 1024:
-                await edit_final_error(texts["too_large"].format(size=f"{size_mb:.1f}"))
-                if os.path.exists(filepath): os.remove(filepath)
+        try:
+            if result.get("success"):
+                filepath = result["filepath"]
+                size_bytes = result["size"]
+                size_mb = size_bytes / (1024*1024) if size_bytes else 0
+
+                if size_bytes > 50 * 1024 * 1024:
+                    await edit_final_error(texts["too_large"].format(size=f"{size_mb:.1f}"))
+                    if os.path.exists(filepath): os.remove(filepath)
+                    async with LocalSession() as session:
+                        await update_download_status(session, download_id, "failed", size_bytes)
+                    return
+
+                try:
+                    async with LocalSession() as session:
+                        await update_download_status(session, download_id, "done", size_bytes)
+
+                    with open(filepath, 'rb') as f:
+                        if quality == 'mp3':
+                            await bot.send_audio(chat_id=chat_id, audio=f, caption="✅ @Speeedloadbot")
+                        elif quality == 'thumbnail':
+                            await bot.send_photo(chat_id=chat_id, photo=f, caption="✅ @Speeedloadbot")
+                        else:
+                            await bot.send_video(chat_id=chat_id, video=f, caption="✅ @Speeedloadbot", supports_streaming=True)
+
+                    await bot.delete_message(chat_id=chat_id, message_id=message_id)
+                except Exception:
+                    await edit_final_error(texts["generic_error"])
+                finally:
+                    if os.path.exists(filepath):
+                        os.remove(filepath)
+            else:
                 async with LocalSession() as session:
-                    await update_download_status(session, download_id, "failed", size_bytes)
-                return
-                
-            try:
-                async with LocalSession() as session:
-                    await update_download_status(session, download_id, "done", size_bytes)
-                
-                with open(filepath, 'rb') as f:
-                    if quality == 'mp3':
-                        await bot.send_audio(chat_id=chat_id, audio=f, caption="✅ @Speeedloadbot")
-                    elif quality == 'thumbnail':
-                        await bot.send_photo(chat_id=chat_id, photo=f, caption="✅ @Speeedloadbot")
-                    else:
-                        await bot.send_video(chat_id=chat_id, video=f, caption="✅ @Speeedloadbot", supports_streaming=True)
-                        
-                await bot.delete_message(chat_id=chat_id, message_id=message_id)
-            except Exception as e:
+                    await update_download_status(session, download_id, "failed")
                 await edit_final_error(texts["generic_error"])
-            finally:
-                if os.path.exists(filepath):
-                    os.remove(filepath)
-        else:
-            async with LocalSession() as session:
-                await update_download_status(session, download_id, "failed")
-            await edit_final_error(texts["generic_error"])
-        await local_engine.dispose()
+        finally:
+            # never leak the bot session or the DB engine, even on early return
+            await bot.shutdown()
+            await local_engine.dispose()
     asyncio.run(finalize())
 
 
