@@ -14,7 +14,7 @@ redis_client = Redis.from_url(REDIS_URL, decode_responses=True)
 class RateLimitedApplication(Application):
     """
     `Application` subclass that enforces a per-user rate limit before any
-    handler runs: each user may trigger at most `MAX_REQUESTS` updates per
+    handler runs: each user may send at most `MAX_REQUESTS` messages per
     `WINDOW_SECONDS` seconds. Fails open if Redis is unavailable, so a Redis
     outage never blocks users.
 
@@ -38,7 +38,13 @@ class RateLimitedApplication(Application):
 
     async def _allow_update(self, update: Update) -> bool:
         user = update.effective_user
-        if not user:
+        # Only messages are rate-limited. Callback-query button taps are cheap
+        # and must stay unlimited — otherwise multi-step flows like onboarding
+        # (which needs 4 taps) would get blocked. The expensive path (link
+        # extraction via yt-dlp) is always triggered by a message.
+        # NOTE: update.effective_message also resolves to the callback query's
+        # message, so we must check the raw message fields instead.
+        if not user or not (update.message or update.edited_message):
             return True
         key = f"rl:{user.id}"
         try:

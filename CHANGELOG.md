@@ -35,6 +35,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive logging and error handling
 - Health checks and system monitoring
 - Integration tests: CRUD layer (SQLite), admin API (TestClient + SQLite), rate limiter (fakeredis), conversation wiring
+- `build_application()` factory in `bot/main.py` — builds the PTB application with an injectable bot instance (used by tests, real token used in production)
+- End-to-end bot flow tests (`tests/test_e2e_bot.py`): full chain /start → language → interests → occupation → YouTube link → quality selection → database record + Celery dispatch, with only the outer boundaries faked (Telegram HTTP via a fake bot, yt-dlp extraction, Celery `.delay`)
+- `tests/conftest.py` — points `DATABASE_URL` at a temp SQLite database before any project import, so integration tests share one isolated DB
+- Rate-limiter tests for callback queries (unlimited) and Redis outage (fails open)
 
 ### Changed
 - N/A
@@ -65,6 +69,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Banned users are now excluded from broadcasts and scheduled jobs
 - Broadcast/job send rate reduced to stay safely under Telegram's flood limits
 - Made `BigInteger` primary keys SQLite-compatible (`with_variant`) so the models work across databases
+- **Critical: fixed `NameError` in `bot/main.py` — the handler was referenced as `handle_personalized_trend` but the function is named `handle_trend_personalized`; the bot crashed at startup (found by the new end-to-end test)**
+- Rate limiting now applies to messages only — callback-query button taps stay unlimited, so multi-step flows like onboarding (4 taps) are no longer blocked by the 3/min limit
 
 ### Security
 - Removed hardcoded default secrets (`ADMIN_PASSWORD`, `JWT_SECRET`) from `config.py` — the admin API refuses to issue tokens until they are set via environment variables
