@@ -2,13 +2,15 @@ import logging
 import asyncio
 from datetime import time
 from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
+from telegram.ext import Application, ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
 
 from config import BOT_TOKEN
+from database.connection import init_db
 # Handler imports
 from bot.handlers.start import start_handler
 from bot.handlers.onboarding import onboarding_conv
 from bot.handlers.account import account_handler, donate_callback_handler
+from bot.handlers.balance import balance_handler
 from bot.handlers.referral import referral_handler
 from bot.handlers.language import language_command, language_callback
 from bot.handlers.download import message_handler, quality_callback, platform_callback
@@ -18,6 +20,7 @@ from bot.handlers.creators import creators_handler, creator_tool_router, file_ha
 from bot.handlers.trends import trend_radar_handler, handle_trend_personalized, cmd_update_trends_ai
 import pytz
 from bot.jobs import morning_motivation_job, juma_greeting_job, weekly_challenge_job, weekly_trend_refresh
+from bot.middlewares.rate_limit import RateLimitedApplication
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -42,12 +45,22 @@ async def global_message_router(update: Update, context: ContextTypes.DEFAULT_TY
     # 3. Default downloader router
     return await message_handler(update, context)
 
-def main():
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    loop.run_until_complete(setup_db())
 
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
+def build_application(bot=None) -> Application:
+    """Build the fully configured bot application (handlers, scheduled jobs,
+    rate limiting).
+
+    A custom `bot` instance may be injected (used by tests); otherwise the bot
+    is created from BOT_TOKEN.
+    """
+    builder = ApplicationBuilder()
+    if bot is not None:
+        builder = builder.bot(bot)
+    else:
+        builder = builder.token(BOT_TOKEN)
+
+    # RateLimitedApplication enforces a per-user rate limit (Redis-backed)
+    app = builder.application_class(RateLimitedApplication).build()
     
     # Scheduler setup
     if app.job_queue:
@@ -77,7 +90,7 @@ def main():
     app.add_handler(CommandHandler("account", account_handler))
     app.add_handler(CommandHandler("stats", account_handler))
     app.add_handler(CallbackQueryHandler(donate_callback_handler, pattern="^donate_info$"))
-    app.add_handler(CommandHandler("balance", account_handler))
+    app.add_handler(CommandHandler("balance", balance_handler))
     app.add_handler(CommandHandler("referral", referral_handler))
     app.add_handler(CommandHandler("language", language_command))
     app.add_handler(CommandHandler("creators", creators_handler))
@@ -87,14 +100,23 @@ def main():
     app.add_handler(CallbackQueryHandler(quality_callback, pattern="^quality_"))
     app.add_handler(CallbackQueryHandler(platform_callback, pattern="^plat_"))
     app.add_handler(CallbackQueryHandler(trend_radar_handler, pattern="^trend_radar_again$"))
-    app.add_handler(CallbackQueryHandler(handle_personalized_trend, pattern="^trend_personalized$"))
+    app.add_handler(CallbackQueryHandler(handle_trend_personalized, pattern="^trend_personalized$"))
     
     # Unified Message Handler
     app.add_handler(MessageHandler(filters.ALL & ~filters.COMMAND, global_message_router))
+
+    return app
+
+
+def main():
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(setup_db())
+
+    app = build_application()
 
     logging.info("Bot started.")
     app.run_polling()
 
 if __name__ == '__main__':
-    from database.connection import init_db
     main()

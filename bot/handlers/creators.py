@@ -53,10 +53,14 @@ async def creator_tool_router(update: Update, context: ContextTypes.DEFAULT_TYPE
     if text == texts["btn_buy_credits"]:
         from database.crud import get_referral_stats
         async with AsyncSessionLocal() as session:
-             ref_count, _ = await get_referral_stats(session, user.id)
-        
-        bot_username = context.bot.username
-        ref_link = f"https://t.me/{bot_username}?start=ref_{user.id}"
+            db_user = await get_user(session, user.id)
+            if db_user:
+                # get_referral_stats expects the primary key (User.id)
+                ref_count, _ = await get_referral_stats(session, db_user.id)
+                bot_me = await context.bot.get_me()
+                ref_link = f"https://t.me/{bot_me.username}?start=ref_{db_user.referral_code}"
+            else:
+                ref_count, ref_link = 0, ""
         
         msg_text = (
             "💳 **Kredit sotib olish / Upgrade**\n\n"
@@ -198,7 +202,7 @@ async def file_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 return
             
             from downloader.youtube import extract_youtube_info
-            info = extract_youtube_info(url)
+            info = await asyncio.to_thread(extract_youtube_info, url)
             if info and info.get("thumbnail"):
                 await msg.reply_photo(photo=info["thumbnail"], caption=texts["status_done"])
             else:

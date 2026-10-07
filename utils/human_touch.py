@@ -231,6 +231,73 @@ Spend your time on what truly matters. You deserve better! 🤍""",
         'message': messages.get(user_lang, messages['uz'])
     }
 
+# === VIDEO TYPE DETECTION & REACTIONS ===
+
+VIDEO_TYPE_KEYWORDS = {
+    'music': ['music', 'official video', 'audio', 'mv', "qo'shiq", 'qoshiq', 'klip', 'track',
+              'трек', 'песня', 'музыка', 'клип', 'song'],
+    'education': ['tutorial', 'lesson', 'dars', 'kurs', "ta'lim", "ta'limot", "o'rgat",
+                  'как ', 'урок', 'обучение', 'darslik'],
+    'gaming': ['gameplay', 'game', "o'yin", 'gamer', 'стрим', 'играть', 'прохождение'],
+    'news': ['news', 'yangilik', 'yangiliklar', 'новости', 'haber', 'вести'],
+    'tech': ['tech', 'texnologiya', 'review', 'обзор', 'gadget', 'gadjet', 'смартфон'],
+    'entertainment': ['comedy', 'funny', 'kulgi', 'meme', 'shorts', 'reels', 'reel',
+                      'юмор', 'прикол', 'веселье'],
+}
+
+
+def detect_video_type(title: str, uploader: str = '') -> str:
+    """Detects a video category from its title/uploader. Returns a type key."""
+    text = f"{title or ''} {uploader or ''}".lower()
+    for v_type, keywords in VIDEO_TYPE_KEYWORDS.items():
+        if any(kw in text for kw in keywords):
+            return v_type
+    return 'general'
+
+
+VIDEO_REACTIONS = {
+    'music': [
+        "🎵 Zo'r qo'shiq tanladingiz!",
+        "🎧 Klipni zavq bilan tomosha qiling!",
+        "🎶 Musiqa — ruhning parvozi!",
+    ],
+    'education': [
+        "📚 Bilim — eng katta sarmoya!",
+        "🎓 Bu materialni e'tibor bilan o'rganing!",
+        "📖 O'rganish — har doim foydali!",
+    ],
+    'gaming': [
+        "🎮 O'yin zavqini his eting!",
+        "👾 Qiziq o'yin ko'rinadi!",
+        "🕹️ Geimerlar uchun a'lo!",
+    ],
+    'news': [
+        "📰 Yangiliklar bilan xabardor bo'ling!",
+        "🗞️ So'nggi yangiliklar — shu yerda!",
+        "📡 Eng so'nggi ma'lumotlar!",
+    ],
+    'tech': [
+        "📱 Texnologiya olamiga xush kelibsiz!",
+        "💻 Foydali sharh!",
+        "🔌 Gadjetlar olami!",
+    ],
+    'entertainment': [
+        "😂 Kulgili ko'rinadi!",
+        "🍿 Zavq bilan tomosha qiling!",
+        "🎭 Tomosha — maroqli!",
+    ],
+    'general': [
+        "✨ Yaxshi video!",
+        "👀 Ko'rib ko'ramiz!",
+        "🎬 Yoqimli ko'rinadi!",
+    ],
+}
+
+
+def get_random_reaction(v_type: str = 'general') -> str:
+    """Returns a random short reaction line for the given video type."""
+    return random.choice(VIDEO_REACTIONS.get(v_type, VIDEO_REACTIONS['general']))
+
 def get_nudge_message(feature: str, user_name: str, lang: str = 'uz'):
     # Only trigger 30% of the time
     if random.random() > 0.3:

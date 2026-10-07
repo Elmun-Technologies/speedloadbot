@@ -1,22 +1,21 @@
-python-telegram-bot[job-queue]>=20.0
-apscheduler==3.10.4
-pytz==2024.1
-hijri-converter
-sqlalchemy[asyncio]
-asyncpg
-redis
-celery[redis]
-yt-dlp
-python-dotenv
-openai-whisper
-ffmpeg-python
-Pillow
-mutagen
-hachoir
-psycopg2-binary
-requests
-fastapi
-uvicorn
-PyJWT
-openai
-python-multipart
+# SpeedLoad Bot — production dependencies
+# Fully pinned for reproducible builds (matches the tested environment).
+# NOTE: openai-whisper pulls in torch (~2 GB) — only needed for the
+# transcription feature (utils/transcriber.py); tests skip it if absent.
+python-telegram-bot[job-queue]==22.8
+APScheduler==3.11.3  # required by the [job-queue] extra; pinned explicitly
+pytz==2026.5
+sqlalchemy[asyncio]==2.1.3
+asyncpg==0.32.0
+redis==6.4.0
+celery[redis]==5.6.3
+yt-dlp==2026.8.19
+python-dotenv==1.2.4
+openai-whisper==20250625
+ffmpeg-python==0.2.0
+requests==2.34.2
+fastapi==0.142.2
+uvicorn==0.54.0
+PyJWT==2.15.1
+openai==3.26.0
+python-multipart==0.0.32

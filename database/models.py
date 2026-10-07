@@ -13,7 +13,7 @@ class DownloadStatus(str, enum.Enum):
 class User(Base):
     __tablename__ = "users"
 
-    id = Column(BigInteger, primary_key=True, index=True)
+    id = Column(BigInteger().with_variant(Integer, "sqlite"), primary_key=True, index=True)
     telegram_id = Column(BigInteger, unique=True, index=True, nullable=False)
     username = Column(String, nullable=True)
     first_name = Column(String, nullable=True)
@@ -75,7 +75,7 @@ class User(Base):
 class Download(Base):
     __tablename__ = "downloads"
 
-    id = Column(BigInteger, primary_key=True, index=True)
+    id = Column(BigInteger().with_variant(Integer, "sqlite"), primary_key=True, index=True)
     user_id = Column(BigInteger, ForeignKey("users.id"))
     url = Column(Text, nullable=False)
     platform = Column(String) 
@@ -91,7 +91,7 @@ class Download(Base):
 class Referral(Base):
     __tablename__ = "referrals"
 
-    id = Column(BigInteger, primary_key=True, index=True)
+    id = Column(BigInteger().with_variant(Integer, "sqlite"), primary_key=True, index=True)
     referrer_id = Column(BigInteger, ForeignKey("users.id"))
     referred_id = Column(BigInteger, ForeignKey("users.id"))
     coins_earned = Column(Integer, default=2) 

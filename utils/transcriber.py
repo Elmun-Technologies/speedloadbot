@@ -1,4 +1,9 @@
-import whisper
+try:
+    import whisper
+except ImportError:
+    # whisper (and its torch dependency) is optional — only needed for the
+    # "video to script" creator tool. Degrade gracefully instead of crashing.
+    whisper = None
 import os
 
 # Lazy load model to avoid memory crash on import
@@ -12,6 +17,8 @@ def get_model():
     return _model
 
 def transcribe_video(file_path):
+    if whisper is None:
+        return "❌ Transkripsiya moduli o'rnatilmagan (whisper/torch yo'q)."
     try:
         model = get_model()
         result = model.transcribe(file_path)

@@ -19,6 +19,23 @@ DOWNLOAD_DIR = os.path.join(os.path.dirname(__file__), "downloads")
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
 # Admin Panel Configuration
+# ⚠️ SECURITY: credentials and secrets MUST be set via environment variables
+# in production. There are deliberately no hardcoded fallback values — the
+# admin API refuses to issue tokens while JWT_SECRET / ADMIN_PASSWORD are unset.
 ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin")
-ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "speedload2026")
-JWT_SECRET = os.getenv("JWT_SECRET", "speedload_secret_2026")
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "")
+# Telegram user IDs allowed to use admin-only bot commands (comma-separated).
+# Empty by default — admin bot commands stay disabled until configured.
+ADMIN_IDS = [
+    int(x) for x in os.getenv("ADMIN_IDS", "").split(",") if x.strip().isdigit()
+]
+JWT_SECRET = os.getenv("JWT_SECRET", "")
+
+# Comma-separated list of origins allowed to call the admin API from a browser
+ADMIN_CORS_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv(
+        "ADMIN_CORS_ORIGINS", "http://localhost:3000,http://localhost:3001"
+    ).split(",")
+    if origin.strip()
+]

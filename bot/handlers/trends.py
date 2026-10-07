@@ -10,16 +10,12 @@ from database.crud import (
 )
 from utils.trends import (
     format_trend_card, format_trend_radar_intro, 
-    format_trend_radar_outro, get_week_label, research_weekly_trends
+    format_trend_radar_outro, get_week_label, research_weekly_trends,
+    get_openai_client
 )
 from utils.integration import process_user_action
-from config import OPENAI_API_KEY
-import openai
 
-# OpenAI Client
-client = openai.AsyncOpenAI(api_key=OPENAI_API_KEY)
-
-ADMIN_IDS = [6241083439] # Update as needed
+from config import ADMIN_IDS  # admin-only commands; empty until ADMIN_IDS is set
 
 async def trend_radar_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Main handler when user taps Trend Radar button"""
@@ -94,7 +90,9 @@ async def handle_trend_personalized(update: Update, context: ContextTypes.DEFAUL
     
     async with AsyncSessionLocal() as session:
         db_user = await get_user(session, user_id)
-        lang = db_user.language if db_user else 'uz'
+        if not db_user:
+            return await query.message.reply_text("❌ Profil topilmadi. Iltimos, /start buyrug'ini qayta yuboring.")
+        lang = db_user.language or 'uz'
         user_industry = db_user.interests or 'general'
         
         trends = await get_active_trends(session, None, lang)
@@ -115,13 +113,18 @@ Mavjud trendlar:
 Bu foydalanuvchi uchun eng mos 1 ta trendni tanlang bo'yicha tavsiya bering.
 Faqat trend nomini va nima uchun mos ekanini 1-2 jumlada yozing."""
 
-        response = await client.chat.completions.create(
-            model='gpt-4o-mini',
-            messages=[{'role': 'user', 'content': prompt}],
-            max_tokens=200,
-        )
-        
-        ai_suggestion = response.choices[0].message.content
+        try:
+            response = await get_openai_client().chat.completions.create(
+                model='gpt-4o-mini',
+                messages=[{'role': 'user', 'content': prompt}],
+                max_tokens=200,
+            )
+            ai_suggestion = response.choices[0].message.content
+        except Exception:
+            return await query.message.reply_text(
+                "🤖 Kechirasiz, AI yordamchi hozircha javob bera olmadi. "
+                "Iltimos, birazdan keyin qayta urinib ko'ring."
+            )
         
         msgs = {
             'uz': f"🤖 AI tavsiyasi:\n\n{ai_suggestion}\n\n✨ Bu trend siz uchun eng mos!",
@@ -142,7 +145,7 @@ async def cmd_update_trends_ai(update: Update, context: ContextTypes.DEFAULT_TYP
     week = datetime.now().strftime('%Y-W%W')
     
     try:
-        new_trends = await research_weekly_trends(client, week)
+        new_trends = await research_weekly_trends(get_openai_client(), week)
         
         async with AsyncSessionLocal() as session:
             # Deactivate old

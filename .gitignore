@@ -152,3 +152,11 @@ config/secrets.json
 # Temporary files from video processing
 *.tmp
 *.temp
+# macOS
+.DS_Store
+
+# pytest
+.pytest_cache/
+
+# CI generates this on the fly (requirements without the heavy whisper dep)
+requirements-ci.txt

@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SpeedLoad — Admin Panel</title>
+<style>
+  :root {
+    --bg: #0f172a; --panel: #1e293b; --panel2: #273449; --border: #334155;
+    --text: #e2e8f0; --muted: #94a3b8; --accent: #38bdf8; --accent2: #818cf8;
+    --ok: #34d399; --warn: #fbbf24; --err: #f87171; --blocked: #f87171;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+  button { cursor: pointer; border: none; border-radius: 8px; padding: 8px 14px; font-size: 14px; background: var(--accent); color: #082f49; font-weight: 600; }
+  button:hover { filter: brightness(1.1); }
+  button:disabled { opacity: .5; cursor: default; }
+  button.ghost { background: var(--panel2); color: var(--text); }
+  button.danger { background: var(--err); color: #450a0a; }
+  button.ok { background: var(--ok); color: #052e16; }
+  input, textarea, select { background: var(--panel2); border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 8px 10px; font-size: 14px; width: 100%; }
+  input:focus, textarea:focus { outline: 2px solid var(--accent); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 600; white-space: nowrap; }
+  .hidden { display: none !important; }
+
+  /* Login */
+  #login { max-width: 360px; margin: 12vh auto; background: var(--panel); padding: 32px; border-radius: 16px; border: 1px solid var(--border); }
+  #login h1 { font-size: 22px; margin-bottom: 4px; }
+  #login p { color: var(--muted); font-size: 13px; margin-bottom: 20px; }
+  #login .field { margin-bottom: 14px; }
+  #login label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 5px; }
+
+  /* Layout */
+  header { display: flex; align-items: center; gap: 18px; padding: 14px 24px; background: var(--panel); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10; flex-wrap: wrap; }
+  header h1 { font-size: 18px; }
+  nav { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; }
+  nav button { background: transparent; color: var(--muted); font-weight: 500; }
+  nav button.active { background: var(--accent); color: #082f49; }
+  main { padding: 24px; max-width: 1200px; margin: 0 auto; }
+  section { display: none; }
+  section.active { display: block; }
+  h2 { font-size: 17px; margin-bottom: 16px; }
+
+  /* Stats */
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+  .card .label { color: var(--muted); font-size: 12px; margin-bottom: 6px; }
+  .card .value { font-size: 26px; font-weight: 700; }
+  .card .sub { color: var(--muted); font-size: 11px; margin-top: 4px; }
+
+  /* Panels & tables */
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 16px; overflow-x: auto; }
+  .toolbar { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; align-items: center; }
+  .toolbar input { max-width: 280px; }
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+  .badge.active { background: #052e16; color: var(--ok); }
+  .badge.blocked { background: #450a0a; color: var(--blocked); }
+  .muted { color: var(--muted); }
+  .row-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .row-actions input { width: 70px; padding: 5px 8px; font-size: 12px; }
+  .row-actions button { padding: 5px 10px; font-size: 12px; }
+  .pager { display: flex; gap: 10px; align-items: center; margin-top: 12px; }
+  .ticket { border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 10px; background: var(--panel2); }
+  .ticket .meta { color: var(--muted); font-size: 12px; margin-bottom: 6px; }
+  .ticket .msg { margin-bottom: 10px; white-space: pre-wrap; }
+  .ticket .reply { display: flex; gap: 8px; }
+  .ticket .reply textarea { flex: 1; }
+  #toast { position: fixed; bottom: 20px; right: 20px; padding: 12px 18px; border-radius: 10px; background: var(--panel2); border: 1px solid var(--border); display: none; z-index: 99; max-width: 340px; }
+  #toast.err { border-color: var(--err); color: var(--err); }
+  #toast.ok { border-color: var(--ok); color: var(--ok); }
+  .spinner { color: var(--muted); padding: 20px; text-align: center; }
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<div id="login">
+  <h1>⚡️ SpeedLoad</h1>
+  <p>Admin panel — iltimos, administrator ma'lumotlarini kiriting</p>
+  <div class="field"><label>Login</label><input id="login-user" autocomplete="username"></div>
+  <div class="field"><label>Parol</label><input id="login-pass" type="password" autocomplete="current-password"></div>
+  <button id="login-btn" style="width:100%">Kirish</button>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="app" class="hidden">
+  <header>
+    <h1>⚡️ SpeedLoad Admin</h1>
+    <nav>
+      <button data-tab="stats" class="active">📊 Statistika</button>
+      <button data-tab="users">👥 Foydalanuvchilar</button>
+      <button data-tab="tickets">🎫 Murojaatlar</button>
+      <button data-tab="trends">📈 Trendlar</button>
+      <button data-tab="payments">💳 To'lovlar</button>
+    </nav>
+    <button id="logout-btn" class="ghost">Chiqish</button>
+  </header>
+  <main>
+    <section id="tab-stats" class="active">
+      <h2>📊 Umumiy statistik ma'lumotlari</h2>
+      <div class="cards" id="stats-cards"><div class="spinner">Yuklanmoqda...</div></div>
+    </section>
+
+    <section id="tab-users">
+      <h2>👥 Foydalanuvchilar</h2>
+      <div class="panel">
+        <div class="toolbar">
+          <input id="user-search" placeholder="Qidirish (ism / username)...">
+          <button id="user-search-btn">Qidirish</button>
+        </div>
+        <table>
+          <thead><tr>
+            <th>ID</th><th>Ism</th><th>Username</th><th>Til</th><th>Kredit</th>
+            <th>Streak</th><th>Yuklamalar</th><th>Holati</th><th>Amallar</th>
+          </tr></thead>
+          <tbody id="users-body"><tr><td colspan="9" class="spinner">Yuklanmoqda...</td></tr></tbody>
+        </table>
+        <div class="pager">
+          <button id="users-prev" class="ghost">← Oldingi</button>
+          <span id="users-page" class="muted"></span>
+          <button id="users-next" class="ghost">Keyingi →</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-tickets">
+      <h2>🎫 Murojaatlar</h2>
+      <div id="tickets-list"><div class="spinner">Yuklanmoqda...</div></div>
+    </section>
+
+    <section id="tab-trends">
+      <h2>📈 Trendlar</h2>
+      <div class="panel"><table>
+        <thead><tr><th>ID</th><th>Hafta</th><th>Kategoriya</th><th>Sarlavha</th><th>O'sish</th><th>Til</th></tr></thead>
+        <tbody id="trends-body"><tr><td colspan="6" class="spinner">Yuklanmoqda...</td></tr></tbody>
+      </table></div>
+    </section>
+
+    <section id="tab-payments">
+      <h2>💳 To'lovlar</h2>
+      <div class="panel"><table>
+        <thead><tr><th>ID</th><th>Foydalanuvchi</th><th>Summa</th><th>Valyuta</th><th>Holati</th><th>Sana</th></tr></thead>
+        <tbody id="payments-body"><tr><td colspan="6" class="spinner">Yuklanmoqda...</td></tr></tbody>
+      </table></div>
+    </section>
+  </main>
+</div>
+
+<div id="toast"></div>
+
+<script>
+"use strict";
+const TOKEN_KEY = "speedload_admin_token";
+let token = localStorage.getItem(TOKEN_KEY) || "";
+let usersPage = 1, usersSearch = "";
+
+function toast(msg, kind) {
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.className = kind || "";
+  el.style.display = "block";
+  setTimeout(() => { el.style.display = "none"; }, 3500);
+}
+
+async function api(path, opts = {}) {
+  const res = await fetch(path, {
+    ...opts,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { "Authorization": "Bearer " + token } : {}),
+      ...(opts.headers || {}),
+    },
+  });
+  if (res.status === 401) { logout(); throw new Error("Sessiya tugadi — qayta kiring"); }
+  if (!res.ok) throw new Error("Xatolik: " + res.status);
+  return res.json();
+}
+
+function el(tag, attrs = {}, text) {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
+  if (text !== undefined) n.textContent = text;
+  return n;
+}
+
+function logout() {
+  token = ""; localStorage.removeItem(TOKEN_KEY);
+  document.getElementById("app").classList.add("hidden");
+  document.getElementById("login").classList.remove("hidden");
+}
+
+async function login() {
+  const username = document.getElementById("login-user").value.trim();
+  const password = document.getElementById("login-pass").value;
+  try {
+    const data = await api("/admin/login", { method: "POST", body: JSON.stringify({ username, password }) });
+    token = data.token; localStorage.setItem(TOKEN_KEY, token);
+    document.getElementById("login").classList.add("hidden");
+    document.getElementById("app").classList.remove("hidden");
+    loadTab("stats");
+  } catch (e) { toast(e.message, "err"); }
+}
+
+/* ---- Tabs ---- */
+const tabs = { stats: loadStats, users: loadUsers, tickets: loadTickets, trends: loadTrends, payments: loadPayments };
+function loadTab(name) {
+  document.querySelectorAll("nav button").forEach(b => b.classList.toggle("active", b.dataset.tab === name));
+  document.querySelectorAll("main section").forEach(s => s.classList.toggle("active", s.id === "tab-" + name));
+  tabs[name]();
+}
+
+/* ---- Stats ---- */
+async function loadStats() {
+  const box = document.getElementById("stats-cards");
+  try {
+    const s = await api("/admin/stats");
+    const cards = [
+      ["Jami foydalanuvchilar", s.totalUsers, ""],
+      ["Bugun aktiv", s.activeToday, s.activeWeek + " / haftada"],
+      ["Yangi (bugun)", s.newUsersToday, s.newUsersWeek + " / haftada"],
+      ["Jami yuklamalar", s.totalDownloads, s.downloadsToday + " / bugun"],
+      ["Ochiq murojatlar", s.openTickets, ""],
+      ["Jami daromad", (s.totalRevenue || 0).toLocaleString() + " so'm", (s.revenueToday || 0) + " / bugun"],
+      ["Creator asboblari", s.creatorUsesToday, "bugun"],
+      ["Top platforma", s.topPlatform || "—", ""],
+    ];
+    box.innerHTML = "";
+    for (const [label, value, sub] of cards) {
+      const c = el("div", { class: "card" });
+      c.append(el("div", { class: "label" }, label), el("div", { class: "value" }, String(value)));
+      if (sub) c.append(el("div", { class: "sub" }, sub));
+      box.append(c);
+    }
+  } catch (e) { box.innerHTML = ""; toast(e.message, "err"); }
+}
+
+/* ---- Users ---- */
+async function loadUsers() {
+  const body = document.getElementById("users-body");
+  body.innerHTML = '<tr><td colspan="9" class="spinner">Yuklanmoqda...</td></tr>';
+  try {
+    const q = usersSearch ? "&search=" + encodeURIComponent(usersSearch) : "";
+    const data = await api("/admin/users?page=" + usersPage + q);
+    body.innerHTML = "";
+    for (const u of data.users) {
+      const tr = el("tr");
+      tr.append(
+        el("td", {}, String(u.id)),
+        el("td", {}, u.name || "—"),
+        el("td", {}, u.username ? "@" + u.username : "—"),
+        el("td", {}, u.lang || "—"),
+        el("td", {}, String(u.credits)),
+        el("td", {}, "🔥 " + u.streak_days),
+        el("td", {}, String(u.total_downloads)),
+      );
+      const statusTd = el("td");
+      statusTd.append(el("span", { class: "badge " + (u.status === "blocked" ? "blocked" : "active") }, u.status === "blocked" ? "blocked" : "active"));
+      tr.append(statusTd);
+
+      const actions = el("td");
+      const wrap = el("div", { class: "row-actions" });
+      const toggleBtn = el("button", { class: u.status === "blocked" ? "ok" : "danger" }, u.status === "blocked" ? "Blokdan chiqarish" : "Bloklash");
+      toggleBtn.onclick = async () => {
+        try { await api("/admin/users/" + u.id + "/block", { method: "POST" }); toast("Holati o'zgartirildi", "ok"); loadUsers(); }
+        catch (e) { toast(e.message, "err"); }
+      };
+      const amountInput = el("input", { type: "number", placeholder: "+ kredit", value: "10" });
+      const addBtn = el("button", { class: "ghost" }, "Kredit qo'shish");
+      addBtn.onclick = async () => {
+        const amount = parseInt(amountInput.value, 10);
+        if (!amount) return toast("Noto'g'ri summa", "err");
+        try { await api("/admin/users/" + u.id + "/credits", { method: "POST", body: JSON.stringify({ amount }) }); toast("Kredit qo'shildi", "ok"); loadUsers(); }
+        catch (e) { toast(e.message, "err"); }
+      };
+      wrap.append(toggleBtn, amountInput, addBtn);
+      actions.append(wrap);
+      tr.append(actions);
+      body.append(tr);
+    }
+    const pages = Math.max(1, Math.ceil(data.total / 20));
+    document.getElementById("users-page").textContent = usersPage + " / " + pages + " sahifa (" + data.total + " ta)";
+    document.getElementById("users-prev").disabled = usersPage <= 1;
+    document.getElementById("users-next").disabled = usersPage >= pages;
+  } catch (e) { body.innerHTML = ""; toast(e.message, "err"); }
+}
+
+/* ---- Tickets ---- */
+async function loadTickets() {
+  const box = document.getElementById("tickets-list");
+  box.innerHTML = '<div class="spinner">Yuklanmoqda...</div>';
+  try {
+    const data = await api("/admin/tickets");
+    box.innerHTML = "";
+    if (!data.tickets.length) { box.innerHTML = '<p class="muted">Murojaatlar yo\'q</p>'; return; }
+    for (const t of data.tickets) {
+      const card = el("div", { class: "ticket" });
+      const meta = el("div", { class: "meta" },
+        "#" + t.id + " · " + (t.user_name || "?") + " (ID: " + t.user_id + ") · " + t.type + " · " + t.status + " · " + (t.created_at || "").slice(0, 16).replace("T", " "));
+      const msg = el("div", { class: "msg" }, t.message);
+      const replyBox = el("div", { class: "reply" });
+      const ta = el("textarea", { rows: "2", placeholder: "Javob yozing..." });
+      const btn = el("button", {}, "Yuborish");
+      btn.onclick = async () => {
+        if (!ta.value.trim()) return;
+        try { await api("/admin/tickets/" + t.id + "/reply", { method: "POST", body: JSON.stringify({ message: ta.value }) }); toast("Javob yuborildi", "ok"); loadTickets(); }
+        catch (e) { toast(e.message, "err"); }
+      };
+      replyBox.append(ta, btn);
+      card.append(meta, msg, replyBox);
+      box.append(card);
+    }
+    if (data.total > data.tickets.length) {
+      box.append(el("p", { class: "muted" },
+        "Faqat so'nggi " + data.tickets.length + " ta ko'rsatilmoqda (jami: " + data.total + ")"));
+    }
+  } catch (e) { box.innerHTML = ""; toast(e.message, "err"); }
+}
+
+/* ---- Trends ---- */
+async function loadTrends() {
+  const body = document.getElementById("trends-body");
+  body.innerHTML = '<tr><td colspan="6" class="spinner">Yuklanmoqda...</td></tr>';
+  try {
+    const data = await api("/admin/trends");
+    body.innerHTML = "";
+    for (const t of data.trends) {
+      const tr = el("tr");
+      tr.append(
+        el("td", {}, String(t.id)),
+        el("td", {}, t.week_number || "—"),
+        el("td", {}, t.category || "—"),
+        el("td", {}, t.title || "—"),
+        el("td", {}, (t.growth_percent != null ? "+" + t.growth_percent + "%" : "—")),
+        el("td", {}, t.lang || "—"),
+      );
+      body.append(tr);
+    }
+  } catch (e) { body.innerHTML = ""; toast(e.message, "err"); }
+}
+
+/* ---- Payments ---- */
+async function loadPayments() {
+  const body = document.getElementById("payments-body");
+  body.innerHTML = '<tr><td colspan="6" class="spinner">Yuklanmoqda...</td></tr>';
+  try {
+    const data = await api("/admin/payments");
+    body.innerHTML = "";
+    for (const p of data.payments) {
+      const tr = el("tr");
+      tr.append(
+        el("td", {}, String(p.id)),
+        el("td", {}, String(p.user_id)),
+        el("td", {}, String(p.amount)),
+        el("td", {}, p.currency || "—"),
+        el("td", {}, p.status || "—"),
+        el("td", {}, (p.created_at || "").slice(0, 16).replace("T", " ")),
+      );
+      body.append(tr);
+    }
+  } catch (e) { body.innerHTML = ""; toast(e.message, "err"); }
+}
+
+/* ---- Wire up ---- */
+document.getElementById("login-btn").onclick = login;
+document.getElementById("login-pass").addEventListener("keydown", e => { if (e.key === "Enter") login(); });
+document.getElementById("logout-btn").onclick = logout;
+document.querySelectorAll("nav button").forEach(b => b.onclick = () => loadTab(b.dataset.tab));
+document.getElementById("user-search-btn").onclick = () => { usersSearch = document.getElementById("user-search").value.trim(); usersPage = 1; loadUsers(); };
+document.getElementById("user-search").addEventListener("keydown", e => { if (e.key === "Enter") { usersSearch = e.target.value.trim(); usersPage = 1; loadUsers(); } });
+document.getElementById("users-prev").onclick = () => { if (usersPage > 1) { usersPage--; loadUsers(); } };
+document.getElementById("users-next").onclick = () => { usersPage++; loadUsers(); };
+
+if (token) {
+  document.getElementById("login").classList.add("hidden");
+  document.getElementById("app").classList.remove("hidden");
+  loadTab("stats");
+}
+</script>
+</body>
+</html>

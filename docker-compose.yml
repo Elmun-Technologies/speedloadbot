@@ -47,5 +47,23 @@ services:
       - redis
     restart: always
 
+  api:
+    build: .
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    environment:
+      - BOT_TOKEN=${BOT_TOKEN}
+      - DATABASE_URL=${DATABASE_URL:-postgresql://user:password@postgres:5432/speedload}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+      - JWT_SECRET=${JWT_SECRET}
+      - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - ADMIN_CORS_ORIGINS=${ADMIN_CORS_ORIGINS:-http://localhost:3000,http://localhost:3001}
+    depends_on:
+      - postgres
+      - redis
+    restart: always
+
 volumes:
   postgres_data:

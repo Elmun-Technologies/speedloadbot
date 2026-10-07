@@ -8,8 +8,11 @@ def get_video_duration(path):
 
 def smart_cut_shorts(input_path, output_dir):
     """
-    Simulates AI cutting by extracting three 20-second highlights 
-    at the beginning, middle, and end of the video.
+    "Smart cut": extracts three 20-second highlights (start / middle / end)
+    and re-encodes them as vertical 9:16 shorts via FFmpeg.
+
+    Deterministic (fixed positions) — not ML-based, despite the marketing
+    name used in the UI. Requires ffmpeg + ffprobe on the PATH.
     """
     try:
         duration = get_video_duration(input_path)
