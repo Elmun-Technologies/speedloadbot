@@ -80,7 +80,7 @@ async def broadcast_message_handler(update: Update, context: ContextTypes.DEFAUL
 
     msg = update.message
     async with AsyncSessionLocal() as session:
-        users = (await session.execute(select(User))).scalars().all()
+        users = (await session.execute(select(User).where(User.is_banned == False))).scalars().all()
 
     sent_count = 0
     fail_count = 0
@@ -101,7 +101,7 @@ async def broadcast_message_handler(update: Update, context: ContextTypes.DEFAUL
             try:
                 await status_msg.edit_text(f"🚀 Yuborish jarayoni: {sent_count}/{len(users)} (Xato: {fail_count})")
             except: pass
-        await asyncio.sleep(0.05)
+        await asyncio.sleep(0.1)
 
     await msg.reply_text(f"✅ **Yuborish yakunlandi!**\n\nSiz yubordingiz: `{sent_count}`\nXatoliklar: `{fail_count}`", parse_mode="Markdown")
     return ConversationHandler.END
@@ -116,5 +116,9 @@ admin_broadcast_conv = ConversationHandler(
         BROADCAST_MESSAGE: [MessageHandler(filters.TEXT | filters.PHOTO, broadcast_message_handler)]
     },
     fallbacks=[CommandHandler("cancel", cancel_admin)],
-    per_message=False # Use False for callback entry points usually
+    # per_message=False is intentional: one broadcast conversation per admin chat
+    # (pressing the button again resumes the same conversation). With
+    # per_message=True PTB only tracks callback queries, so the admin's plain
+    # text reply would never match — the PTB warning does not apply here.
+    per_message=False
 )

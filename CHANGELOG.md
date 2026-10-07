@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Advanced rate limiting and abuse prevention
 - Comprehensive logging and error handling
 - Health checks and system monitoring
+- Integration tests: CRUD layer (SQLite), admin API (TestClient + SQLite), rate limiter (fakeredis), conversation wiring
 
 ### Changed
 - N/A
@@ -60,6 +61,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed committed `__pycache__` / `.DS_Store` artifacts; added `.DS_Store` to `.gitignore`
 - Added `.dockerignore`; removed duplicate FFmpeg install in `Dockerfile`; added `api` service to `docker-compose.yml`
 - Added smoke/unit tests (`tests/`) and `requirements-dev.txt`
+- Gamification points for downloads are now awarded when a download actually starts (quality selected), not when a link is sent
+- Banned users are now excluded from broadcasts and scheduled jobs
+- Broadcast/job send rate reduced to stay safely under Telegram's flood limits
+- Made `BigInteger` primary keys SQLite-compatible (`with_variant`) so the models work across databases
 
 ### Security
 - Removed hardcoded default secrets (`ADMIN_PASSWORD`, `JWT_SECRET`) from `config.py` — the admin API refuses to issue tokens until they are set via environment variables

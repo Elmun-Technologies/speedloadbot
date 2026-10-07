@@ -11,7 +11,7 @@ import pytz
 async def get_active_users():
     seven_days_ago = datetime.utcnow() - timedelta(days=7)
     async with AsyncSessionLocal() as session:
-        stmt = select(User).where(User.last_active >= seven_days_ago)
+        stmt = select(User).where(User.last_active >= seven_days_ago, User.is_banned == False)
         result = await session.execute(stmt)
         return result.scalars().all()
 
@@ -23,7 +23,7 @@ async def morning_motivation_job(context: ContextTypes.DEFAULT_TYPE):
         msg = get_morning_message(user.language)
         try:
             await context.bot.send_message(chat_id=user.telegram_id, text=msg)
-            await asyncio.sleep(0.05)
+            await asyncio.sleep(0.1)
         except Exception:
             pass
 
@@ -38,7 +38,7 @@ async def juma_greeting_job(context: ContextTypes.DEFAULT_TYPE):
             if "Juma" in msg:
                 try:
                     await context.bot.send_message(chat_id=user.telegram_id, text=msg)
-                    await asyncio.sleep(0.05)
+                    await asyncio.sleep(0.1)
                 except Exception:
                     pass
 
@@ -50,7 +50,7 @@ async def weekly_challenge_job(context: ContextTypes.DEFAULT_TYPE):
         msg = get_weekly_challenge(user.language)
         try:
             await context.bot.send_message(chat_id=user.telegram_id, text=msg)
-            await asyncio.sleep(0.05)
+            await asyncio.sleep(0.1)
         except Exception:
             pass
 
@@ -88,6 +88,6 @@ async def weekly_trend_refresh(context: ContextTypes.DEFAULT_TYPE):
         msg = notify_msgs.get(lang, notify_msgs['uz'])
         try:
             await context.bot.send_message(chat_id=user.telegram_id, text=msg)
-            await asyncio.sleep(0.05)
+            await asyncio.sleep(0.1)
         except Exception:
             pass

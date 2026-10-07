@@ -73,9 +73,6 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(filter_res['message'], disable_web_page_preview=False)
         return
 
-    # Engagement Tracking (Gamification)
-    await process_user_action(user.id, 'download', context.bot, lang)
-
     platform = detect_platform(text)
     if platform == "other":
         await update.message.reply_text(texts["unsupported"])
@@ -195,6 +192,10 @@ async def quality_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         from database.crud import create_download as db_create_download
         dl = await db_create_download(session, db_user.id, url, platform, quality, title, duration)
         download_id = dl.id
+
+    # Engagement tracking (gamification): award points now that the download
+    # has actually been started — not when the link was merely sent
+    await process_user_action(user.id, 'download', context.bot, lang)
 
     loading_msgs = texts["loading"]
     fun_msg = random.choice(loading_msgs)
