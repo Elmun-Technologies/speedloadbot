@@ -44,11 +44,8 @@ A comprehensive Telegram bot for downloading videos from various platforms with 
 - **Redis** - Caching and session storage
 - **Celery** - Task queue and background jobs
 
-### Frontend
-- **Next.js** - React framework for admin dashboard
-- **TypeScript** - Type-safe JavaScript
-- **Tailwind CSS** - Utility-first CSS framework
-- **ShadCN UI** - Component library
+### Frontend (Admin Dashboard)
+- **Next.js + TypeScript + Tailwind CSS + ShadCN UI** — 🚧 in development (`dashboard/` is a placeholder for now; the FastAPI admin API in `api/` is ready to consume)
 
 ### Bot Framework
 - **Python-Telegram-Bot** - Telegram bot framework
@@ -104,7 +101,7 @@ A comprehensive Telegram bot for downloading videos from various platforms with 
    python api/main.py
    ```
 
-7. **Start the admin dashboard:**
+7. **Start the admin dashboard (🚧 in development):**
    ```bash
    ./admin-dev.sh
    ```
@@ -221,11 +218,11 @@ speedloader/
 ### Testing
 
 ```bash
+# Install dev dependencies (includes pytest)
+pip install -r requirements-dev.txt
+
 # Run tests
 python -m pytest
-
-# Run specific test
-python -m pytest tests/test_downloader.py
 
 # Run with coverage
 python -m pytest --cov=.
@@ -235,14 +232,9 @@ python -m pytest --cov=.
 
 ### Production Setup
 
-1. **Build Docker images:**
+1. **Build and start all services (bot, celery worker, API, postgres, redis):**
    ```bash
-   docker-compose -f docker-compose.prod.yml build
-   ```
-
-2. **Deploy:**
-   ```bash
-   docker-compose -f docker-compose.prod.yml up -d
+   docker-compose up -d --build
    ```
 
 3. **Monitor:**

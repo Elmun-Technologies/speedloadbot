@@ -90,7 +90,9 @@ TEXTS = {
         "status_send_file": "Iltimos, fayl yuboring.",
         "status_too_long": "📝 Script juda uzun, faylni ko'ring.",
         "quality_audio": "🎵 Audio/Musiqa",
-        "quality_thumbnail": "🖼 Muqova rasm"
+        "quality_thumbnail": "🖼 Muqova rasm",
+        "language_updated": "✅ Til o'zgartirildi!",
+        "what_to_download": "📥 Nima yuklab olmoqchisiz? Tanlang: 👇"
     },
     "ru": {
         "welcome_new": "⚡️ О, новый человек! Добро пожаловать в SpeedLoad! \n\nКакое видео хотите скачать? Пришлите ссылку — мы все сделаем 😎\n\n🚫 Без рекламы\n🚫 Без водяных знаков\n🚫 Без ограничений",
@@ -116,6 +118,13 @@ TEXTS = {
         "account": "👤 **ВАШ ПРОФИЛЬ**\n\n🆔 ID: `{id}`\n👤 Имя: **{name}**\n📅 Дата регистрации: {joined}\n\n━━━━━━━━━━━━━━━\n📈 **СТАТИСТИКА (Всего)**\n━━━━━━━━━━━━━━━\n📥 Загружено видео: `{total}`\n🎨 Инструменты Creator: `{creator_count}` раз\n👥 Приглашено друзей: `{ref_count}` чел.\n\n━━━━━━━━━━━━━━━\n💳 **РЕСУРСЫ**\n━━━━━━━━━━━━━━━\n💎 Creator-кредиты: `{credits}`\n⭐️ Статус: **{status}**\n\nСпасибо, что пользуетесь SpeedLoad! 🙏",
         "btn_donate": "☕️ Донат / Поддержать проект",
         "donate_text": "❤️ **Поддержка проекта**\n\nSpeedLoad — это абсолютно бесплатный бот без рекламы. Если он вам полезен, вы можете поддержать нашу команду небольшим донатом. Это поможет нам развивать бота быстрее и качественнее! 🚀\n\n💳 **Payme / Click:**\n`8600 1234 5678 9012` (Назир Э.)\n\nОгромное спасибо за поддержку! 🙏",
+        "motivational_quotes": [
+            "🚀 'Большие результаты начинаются с маленьких шагов.' — Создайте своё первое видео сегодня!",
+            "✨ 'Ваш контент может изменить мир.' — Не останавливайтесь!",
+            "🎯 'Успех — это сумма маленьких побед, повторяемых каждый день.'",
+            "🔥 'Лучшее время — сейчас!' — Время воплощать идеи в жизнь.",
+            "💎 'Качество важнее количества.' — Создавайте лучший контент сегодня!"
+        ],
         "status_free": "Пользователь",
         "status_premium": "👑 Premium Creator",
         "status_donator": "🎖 Поддерживающий",
@@ -173,7 +182,9 @@ TEXTS = {
         "status_send_file": "Пожалуйста, отправьте файл.",
         "status_too_long": "📝 Скрипт слишком длинный, смотрите файл.",
         "quality_audio": "🎵 Аудио/Музыка",
-        "quality_thumbnail": "🖼 Обложка"
+        "quality_thumbnail": "🖼 Обложка",
+        "language_updated": "✅ Язык изменён!",
+        "what_to_download": "📥 Что будем скачивать? Выберите: 👇"
     },
     "en": {
         "welcome_new": "⚡️ Oh, a new face! Welcome to SpeedLoad! \n\nWhich video do you want to download? Send a link — we'll handle the rest 😎\n\n🚫 No ads\n🚫 No watermarks\n🚫 No limits",
@@ -199,6 +210,13 @@ TEXTS = {
         "account": "👤 **YOUR PROFILE**\n\n🆔 ID: `{id}`\n👤 Name: **{name}**\n📅 Joined Date: {joined}\n\n━━━━━━━━━━━━━━━\n📈 **STATISTICS (Total)**\n━━━━━━━━━━━━━━━\n📥 Videos downloaded: `{total}`\n🎨 Creator tools used: `{creator_count}` times\n👥 Friends invited: `{ref_count}`\n\n━━━━━━━━━━━━━━━\n💳 **RESOURCES**\n━━━━━━━━━━━━━━━\n💎 Creator credits: `{credits}`\n⭐️ Status: **{status}**\n\nThank you for using SpeedLoad! 🙏",
         "btn_donate": "☕️ Donate / Support Project",
         "donate_text": "❤️ **Support the Project**\n\nSpeedLoad is a completely free and ad-free bot. If it's useful to you, you can support our team with a small donation. This helps us make the bot faster and higher quality! 🚀\n\n💳 **International / Local:**\n`8600 1234 5678 9012` (Nazir E.)\n\nThank you so much! Your support means the world to us! 🙏",
+        "motivational_quotes": [
+            "🚀 'Big results start with small steps.' — Create your first video today!",
+            "✨ 'Your content can change the world.' — Don't stop!",
+            "🎯 'Success is a sum of small victories repeated every day.'",
+            "🔥 'The best time is now!' — Time to bring your ideas to life.",
+            "💎 'Quality over quantity.' — Create your best content today!"
+        ],
         "status_free": "User",
         "status_premium": "👑 Premium Creator",
         "status_donator": "🎖 Supporter",
@@ -256,6 +274,8 @@ TEXTS = {
         "status_send_file": "Please send a file.",
         "status_too_long": "📝 Script is too long, check the file.",
         "quality_audio": "🎵 Audio/Music",
-        "quality_thumbnail": "🖼 Thumbnail"
+        "quality_thumbnail": "🖼 Thumbnail",
+        "language_updated": "✅ Language updated!",
+        "what_to_download": "📥 What would you like to download? Choose: 👇"
     }
 }

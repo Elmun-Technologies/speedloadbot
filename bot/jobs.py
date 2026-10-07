@@ -56,19 +56,16 @@ async def weekly_challenge_job(context: ContextTypes.DEFAULT_TYPE):
 
 async def weekly_trend_refresh(context: ContextTypes.DEFAULT_TYPE):
     """Runs every Monday 08:00 — refreshes trends and notifies users"""
-    from utils.trends import research_weekly_trends
+    from utils.trends import research_weekly_trends, get_openai_client
     from database.crud import deactivate_old_trends, add_trend, get_active_users_for_notification
     from database.connection import AsyncSessionLocal
-    import openai
-    from config import OPENAI_API_KEY
-    
-    client = openai.AsyncOpenAI(api_key=OPENAI_API_KEY)
+
     week = datetime.now().strftime('%Y-W%W')
-    
+
     async with AsyncSessionLocal() as session:
         try:
             # 1. AI Research
-            new_trends = await research_weekly_trends(client, week)
+            new_trends = await research_weekly_trends(get_openai_client(), week)
             # 2. Deactivate old
             await deactivate_old_trends(session, week)
             # 3. Save new

@@ -45,10 +45,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - N/A
 
 ### Fixed
-- N/A
+- Fixed syntax error in `bot/handlers/account.py` (stray markdown fence) that prevented the bot from starting
+- Added missing `detect_video_type` / `get_random_reaction` helpers in `utils/human_touch.py` (broken imports in the download handler)
+- Download flow now actually sends the video info card with quality buttons (it was built but never sent — no download could ever start)
+- Fixed `/language` callback: undefined `texts` variable and wrong user id field
+- Fixed `/balance` handler (referenced non-existent `get_user_stats` and `coins` field) and wired it to the `/balance` command
+- Fixed referral link and referral stats lookup in the Creator "buy credits" screen
+- Fixed `datetime` column defaults in `database/models.py` (were frozen at import time instead of per-row)
+- Removed broken `update_user_engagement` from `database/crud.py` (referenced non-existent model fields)
+- Added missing translation keys (`language_updated`, `what_to_download`) for uz/ru/en
+- Registered the Redis-backed rate-limit middleware (was never attached to the bot)
+- Admin API: real statistics instead of hardcoded mock values; user search also matches username
+- Replaced blocking yt-dlp calls in async handlers with `asyncio.to_thread`
+- Removed committed `__pycache__` / `.DS_Store` artifacts; added `.DS_Store` to `.gitignore`
+- Added `.dockerignore`; removed duplicate FFmpeg install in `Dockerfile`; added `api` service to `docker-compose.yml`
+- Added smoke/unit tests (`tests/`) and `requirements-dev.txt`
 
 ### Security
-- N/A
+- Removed hardcoded default secrets (`ADMIN_PASSWORD`, `JWT_SECRET`) from `config.py` — the admin API refuses to issue tokens until they are set via environment variables
+- Added `POST /admin/login` endpoint issuing short-lived (12h) admin JWTs with constant-time credential comparison
+- Restricted admin API CORS to configured origins (was `*` together with credentials)
 
 ## [1.0.0] - 2024-03-20
 

@@ -1,11 +1,15 @@
+import html
 import time
 import random
 from telegram import Update
 from telegram.ext import ContextTypes
 from database.connection import AsyncSessionLocal
-from database.crud import get_user, create_download, get_limits, update_user_engagement
+from database.crud import get_user
 from utils.translations import TEXTS
-from utils.human_touch import send_typing, detect_video_type, get_random_reaction
+from utils.human_touch import (
+    send_typing, detect_video_type, get_random_reaction,
+    check_content_filter, get_nudge_message
+)
 from utils.file_sizes import get_format_sizes
 from downloader.detector import detect_platform
 from downloader.youtube import extract_youtube_info
@@ -15,10 +19,6 @@ from bot.keyboards.inline import get_youtube_keyboard, get_instagram_keyboard, g
 from tasks.download_task import process_download
 from datetime import timedelta, datetime
 import asyncio
-from utils.human_touch import (
-    send_typing, detect_video_type, get_random_reaction, 
-    check_content_filter, get_nudge_message, get_quote
-)
 from utils.integration import process_user_action
 from utils.streak_system import format_leaderboard
 
@@ -56,10 +56,6 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if text in [TEXTS["uz"]["btn_language"], TEXTS["ru"]["btn_language"], TEXTS["en"]["btn_language"]]:
         from bot.handlers.language import language_command
         return await language_command(update, context)
-        
-    if text in [TEXTS["uz"]["btn_language"], TEXTS["ru"]["btn_language"], TEXTS["en"]["btn_language"]]:
-        from bot.handlers.language import language_command
-        return await language_command(update, context)
 
     if text in [TEXTS["uz"]["btn_creators"], TEXTS["ru"]["btn_creators"], TEXTS["en"]["btn_creators"]]:
         from bot.handlers.creators import creators_handler
@@ -89,19 +85,21 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     info = None
     sizes = {}
+    # yt-dlp extraction is blocking network I/O — run it in a worker thread
+    # so the bot's event loop stays responsive for other users
     if platform == "youtube":
-        info = extract_youtube_info(text)
+        info = await asyncio.to_thread(extract_youtube_info, text)
         if info:
-            sizes = get_format_sizes(text)
+            sizes = await asyncio.to_thread(get_format_sizes, text)
             keyboard = get_youtube_keyboard(lang, sizes)
     elif platform == "instagram":
-        info = extract_instagram_info(text)
+        info = await asyncio.to_thread(extract_instagram_info, text)
         if info:
             keyboard = get_instagram_keyboard(lang)
     else:
-        info = extract_universal_info(text)
+        info = await asyncio.to_thread(extract_universal_info, text)
         if info:
-            sizes = get_format_sizes(text)
+            sizes = await asyncio.to_thread(get_format_sizes, text)
             keyboard = get_universal_keyboard(lang, sizes)
 
     if not info:
@@ -114,11 +112,43 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     caption = ""
     if platform == "youtube":
-        caption = f"{reaction}\n\n🎬 **{info.get('title')}**\n👤 Kanal: {info.get('uploader')}\n⏱ Davomiyligi: {format_duration(info.get('duration'))}\n👁 {info.get('view_count'):,} ko'rishlar\n\n📦 **Sifat tanlang:**"
+        title = html.escape(str(info.get('title') or 'Video'))
+        uploader = html.escape(str(info.get('uploader') or 'Unknown'))
+        view_count = info.get('view_count') or 0
+        caption = (
+            f"{reaction}\n\n🎬 <b>{title}</b>\n"
+            f"👤 Kanal: {uploader}\n"
+            f"⏱ Davomiyligi: {format_duration(info.get('duration'))}\n"
+            f"👁 {view_count:,} ko'rishlar\n\n"
+            f"📦 <b>Sifat tanlang:</b>"
+        )
     elif platform == "instagram":
-        caption = f"{reaction}\n\n📸 @{info.get('uploader')}\n📝 {info.get('description')}\n👁 {info.get('view_count'):,} ko'rishlar ❤️ {info.get('like_count'):,} like\n\n{texts['what_to_download']}"
+        uploader = html.escape(str(info.get('uploader') or 'unknown'))
+        description = html.escape(str(info.get('description') or ''))[:200]
+        view_count = info.get('view_count') or 0
+        like_count = info.get('like_count') or 0
+        caption = (
+            f"{reaction}\n\n📸 @{uploader}\n"
+            f"📝 {description}\n"
+            f"👁 {view_count:,} ko'rishlar ❤️ {like_count:,} like\n\n"
+            f"{texts['what_to_download']}"
+        )
     else:
-        caption = f"{reaction}\n\n🎬 **{info.get('title', 'Video')}**\n⏱ Davomiyligi: {format_duration(info.get('duration', 0))}\n\n📦 **Sifat tanlang:**"
+        title = html.escape(str(info.get('title') or 'Video'))
+        caption = (
+            f"{reaction}\n\n🎬 <b>{title}</b>\n"
+            f"⏱ Davomiyligi: {format_duration(info.get('duration') or 0)}\n\n"
+            f"📦 <b>Sifat tanlang:</b>"
+        )
+
+    # Show the video info card with the quality buttons. This is the message
+    # that quality_callback later edits (it reads reply_to_message to find the
+    # original link message).
+    try:
+        await msg.edit_text(caption, reply_markup=keyboard, parse_mode="HTML", disable_web_page_preview=True)
+    except Exception:
+        # Fallback if HTML parsing fails (special characters in the title etc.)
+        await msg.edit_text(caption, reply_markup=keyboard, disable_web_page_preview=True)
 
     message_id = update.message.message_id
     context.user_data[f"url_{message_id}"] = text

@@ -133,38 +133,6 @@ async def get_referral_stats(session: AsyncSession, user_id: int):
     earned = sum(r.coins_earned for r in referrals)
     return count, earned
 
-async def update_user_engagement(session: AsyncSession, user_id: int):
-    stmt = select(User).where(User.id == user_id)
-    result = await session.execute(stmt)
-    user = result.scalar_one_or_none()
-    
-    if user:
-        now = datetime.utcnow()
-        # Update action count
-        user.action_count += 1
-        
-        # Streak logic
-        last_action = user.last_action_date
-        if last_action:
-            # Normalize to dates for comparison
-            now_date = now.date()
-            last_date = last_action.date()
-            diff = (now_date - last_date).days
-            
-            if diff == 1:
-                user.streak += 1
-            elif diff > 1:
-                user.streak = 1
-            # if diff == 0, keep same streak
-        else:
-            user.streak = 1
-            
-        user.last_action_date = now
-        user.last_active = now
-        await session.commit()
-        return user
-    return None
-
 async def increment_creator_uses(session: AsyncSession, user_id: int):
     stmt = select(User).where(User.id == user_id)
     result = await session.execute(stmt)

@@ -2,9 +2,15 @@ import random
 import json
 from datetime import datetime
 import pytz
-from config import OPENAI_API_KEY
 
 # === AI TREND RESEARCH ===
+
+def get_openai_client():
+    """Create the OpenAI client lazily, so importing modules never fails when
+    OPENAI_API_KEY is not configured (usage fails gracefully instead)."""
+    import openai
+    from config import OPENAI_API_KEY
+    return openai.AsyncOpenAI(api_key=OPENAI_API_KEY or None)
 
 async def research_weekly_trends(openai_client, week: str) -> list:
     """

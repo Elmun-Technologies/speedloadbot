@@ -1,0 +1,14 @@
+.git
+.env
+.venv
+venv
+__pycache__
+*.pyc
+.DS_Store
+downloads/
+.pytest_cache/
+.idea/
+.vscode/
+*.db
+*.sqlite
+*.sqlite3

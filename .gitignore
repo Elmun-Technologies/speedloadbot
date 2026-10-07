@@ -152,3 +152,8 @@ config/secrets.json
 # Temporary files from video processing
 *.tmp
 *.temp
+# macOS
+.DS_Store
+
+# pytest
+.pytest_cache/
