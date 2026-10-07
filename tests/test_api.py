@@ -73,7 +73,10 @@ def auth(token):
 
 def test_health(client):
     r = client.get("/health")
-    assert r.status_code == 200 and r.json() == {"status": "ok"}
+    assert r.status_code == 200
+    body = r.json()
+    assert body["status"] == "ok"
+    assert body["database"] == "ok"  # real DB probe, not a hardcoded constant
 
 
 def test_login_rejects_wrong_password(client):
@@ -214,3 +217,44 @@ def test_dashboard_does_not_bypass_admin_auth(client):
     assert r.status_code == 401
     r = client.get("/admin/users")
     assert r.status_code == 401
+
+
+def test_tickets_pagination(client):
+    """The tickets list is paginated (page/limit) and reports the total."""
+    token = login(client)
+    r = client.get("/admin/tickets", params={"page": 1, "limit": 1}, headers=auth(token))
+    body = r.json()
+    assert len(body["tickets"]) == 1
+    assert body["total"] == 1
+    # page 2 with limit 1 -> offset past the only row
+    r = client.get("/admin/tickets", params={"page": 2, "limit": 1}, headers=auth(token))
+    body = r.json()
+    assert body["tickets"] == []
+    assert body["total"] == 1
+
+
+def test_ticket_reply_enqueues_telegram_notification(client, monkeypatch):
+    """Replying to a ticket queues a Celery task that notifies the user
+    on Telegram (telegram_id + message + the user's language)."""
+    import tasks.download_task as tasks_module
+
+    calls = []
+
+    class FakeTask:
+        def delay(self, *args, **kwargs):
+            calls.append((args, kwargs))
+
+    monkeypatch.setattr(tasks_module, "notify_ticket_reply", FakeTask())
+
+    token = login(client)
+    r = client.get("/admin/tickets", headers=auth(token))
+    tid = r.json()["tickets"][0]["id"]
+
+    r = client.post(f"/admin/tickets/{tid}/reply",
+                    json={"message": "Muammo hal qilindi"}, headers=auth(token))
+    assert r.status_code == 200
+    assert len(calls) == 1
+    args, _ = calls[0]
+    assert args[0] == 1001          # seeded user Ali's telegram_id
+    assert args[1] == "Muammo hal qilindi"
+    assert args[2] == "uz"          # the user's language

@@ -43,9 +43,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub Actions CI workflow (`.github/workflows/tests.yml`) running the full test suite on every push/PR
 - End-to-end edge-case tests: banned user is blocked, unsupported link gets an error reply, plain text is ignored silently
 - Graceful-degradation test for the optional whisper transcriber
+- Admin ticket replies now reach the user on Telegram: `POST /admin/tickets/{id}/reply` enqueues a `notify_ticket_reply` Celery task (executed by the worker, retried on failure, HTML-escaped); added the `ticket_reply_admin` translation key (uz/ru/en)
+- `GET /admin/tickets` is now paginated (`page`/`limit` params) and returns the `total` count
+- Tests for the worker tasks (`tests/test_tasks.py`: notification content, HTML escaping, user language) and for the whisper transcription formatting (fake model — no torch needed)
 
 ### Changed
 - `requirements.txt` is now fully pinned to the tested environment (reproducible installs); `requirements-dev.txt` pinned as well
+- `GET /health` now performs a real database probe (`{"status": ..., "database": ...}`) instead of returning a hardcoded constant
 
 ### Deprecated
 - N/A

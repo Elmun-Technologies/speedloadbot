@@ -311,6 +311,10 @@ async function loadTickets() {
       card.append(meta, msg, replyBox);
       box.append(card);
     }
+    if (data.total > data.tickets.length) {
+      box.append(el("p", { class: "muted" },
+        "Faqat so'nggi " + data.tickets.length + " ta ko'rsatilmoqda (jami: " + data.total + ")"));
+    }
   } catch (e) { box.innerHTML = ""; toast(e.message, "err"); }
 }
 

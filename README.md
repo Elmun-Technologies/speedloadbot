@@ -177,6 +177,8 @@ docker-compose up admin
 - `/users` - Manage users
 - `/tickets` - Handle support tickets
 
+Admin replies to tickets (bot `/tickets` or the dashboard/API `POST /admin/tickets/{id}/reply`) are delivered to the user on Telegram via a queued Celery task.
+
 ## Development
 
 ### Code Structure

@@ -1,6 +1,7 @@
 import os
 import time
 import asyncio
+import html
 import requests
 import random
 from celery import Celery
@@ -103,3 +104,28 @@ def process_download(self, telegram_id, chat_id, message_id, url, quality, downl
             await edit_final_error(texts["generic_error"])
         await local_engine.dispose()
     asyncio.run(finalize())
+
+
+@celery_app.task(bind=True, max_retries=3)
+def notify_ticket_reply(self, telegram_id, message, language="uz"):
+    """Notify a user via Telegram that the admin replied to their ticket.
+
+    Enqueued by the admin API (POST /admin/tickets/{id}/reply) so support
+    answers actually reach the user instead of only living in the database.
+    """
+    texts = TEXTS.get(language, TEXTS["uz"])
+    # the admin's message is user-visible — escape it before HTML formatting
+    text = texts["ticket_reply_admin"].format(message=html.escape(message))
+
+    async def send():
+        bot = Bot(token=BOT_TOKEN)
+        try:
+            await bot.send_message(chat_id=telegram_id, text=text, parse_mode="HTML")
+        finally:
+            await bot.shutdown()
+
+    try:
+        asyncio.run(send())
+    except Exception as exc:
+        # transient Telegram/network errors -> retry with backoff
+        raise self.retry(exc=exc, countdown=30)

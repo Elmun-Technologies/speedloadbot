@@ -8,7 +8,7 @@ from fastapi.responses import FileResponse
 from pathlib import Path
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, desc, or_
+from sqlalchemy import select, func, desc, or_, text
 from typing import Optional
 from pydantic import BaseModel
 
@@ -43,11 +43,6 @@ app.add_middleware(
 
 
 # --- HEALTH CHECK ---
-
-@app.get("/health")
-async def health():
-    return {"status": "ok"}
-
 
 # --- ADMIN DASHBOARD (static, no build step) ---
 
@@ -121,6 +116,21 @@ async def admin_login(data: LoginRequest):
 async def get_db():
     async with AsyncSessionLocal() as session:
         yield session
+
+
+@app.get("/health")
+async def health(db: AsyncSession = Depends(get_db)):
+    """Liveness + readiness probe: verifies the database is reachable."""
+    try:
+        await db.execute(text("SELECT 1"))
+        db_status = "ok"
+    except Exception:
+        logger.exception("Health check: database is unreachable")
+        db_status = "error"
+    return {
+        "status": "ok" if db_status == "ok" else "degraded",
+        "database": db_status,
+    }
 
 
 # --- ADMIN ENDPOINTS ---
@@ -246,14 +256,16 @@ async def add_credits(user_id: int, data: CreditUpdate, db: AsyncSession = Depen
 
 
 @app.get("/admin/tickets", dependencies=[Depends(verify_admin_token)])
-async def get_tickets(status: Optional[str] = None, db: AsyncSession = Depends(get_db)):
+async def get_tickets(status: Optional[str] = None, page: int = 1, limit: int = 20,
+                      db: AsyncSession = Depends(get_db)):
     query = select(Ticket).order_by(desc(Ticket.created_at))
     if status:
         query = query.where(Ticket.status == status)
 
-    result = await db.execute(query)
+    total = await db.scalar(select(func.count()).select_from(query.subquery()))
+    result = await db.execute(query.limit(limit).offset((page - 1) * limit))
     tickets = result.scalars().all()
-    return {"tickets": tickets}
+    return {"tickets": tickets, "total": total}
 
 
 class ReplyData(BaseModel):
@@ -268,10 +280,18 @@ async def reply_ticket(ticket_id: int, data: ReplyData, db: AsyncSession = Depen
     reply = TicketReply(ticket_id=ticket_id, message=data.message)
     db.add(reply)
     ticket.status = TicketStatus.in_progress
-    await db.commit()
 
-    # NOTE: to notify the user via the bot, wire this to a shared task queue
-    # or a bot webhook — left as a hook for a later phase.
+    # Notify the user via Telegram (queued Celery task executed by the worker).
+    # Best-effort: a queue outage must never fail the admin's reply.
+    user = await db.get(User, ticket.user_id)
+    if user:
+        try:
+            from tasks.download_task import notify_ticket_reply
+            notify_ticket_reply.delay(user.telegram_id, data.message, user.language or "uz")
+        except Exception:
+            logger.warning("Could not enqueue ticket-reply notification", exc_info=True)
+
+    await db.commit()
     return {"status": "success"}
 
 
